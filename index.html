@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="id"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Monopoli Atom</title>
+<style>
+:root{--bg:#e8f0ea;--ink:#1c2a22;--card:#fff;--ac:#4f46e5}
+*{box-sizing:border-box}html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;padding:env(safe-area-inset-top,0) 8px env(safe-area-inset-bottom,0)}
+.wrap{max-width:680px;margin:0 auto;padding:8px 0}
+h1{font-size:1.2rem;text-align:center;margin:6px 0}
+#board{display:grid;grid-template-columns:repeat(7,1fr);grid-template-rows:repeat(7,1fr);aspect-ratio:1;gap:2px;background:#2d5a3d;padding:3px;border-radius:12px}
+.cell{background:#fdf6e3;border-radius:4px;display:flex;flex-direction:column;overflow:hidden;font-size:clamp(7px,2vw,11px);text-align:center;position:relative;min-width:0}
+.band{height:22%;min-height:5px}
+.cb{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:1px;line-height:1.15}
+.em{font-size:clamp(11px,3.6vw,20px)}
+.pr{font-weight:700}
+.own{position:absolute;top:0;right:0;width:9px;height:9px;border-radius:0 0 0 6px}
+.tks{display:flex;gap:1px;flex-wrap:wrap;justify-content:center}
+.tk{width:clamp(7px,2.2vw,13px);aspect-ratio:1;border-radius:50%;border:1.5px solid #fff;box-shadow:0 0 2px #000}
+#mid{grid-area:2/2/7/7;background:#cfe6d6;border-radius:8px;padding:8px;display:flex;flex-direction:column;gap:6px;align-items:center;justify-content:center;text-align:center;overflow:hidden}
+#dice{font-size:clamp(30px,10vw,56px);line-height:1}
+button{font:inherit;cursor:pointer}
+.btn{background:var(--ac);color:#fff;border:0;border-radius:10px;padding:9px 16px;font-weight:600}
+.btn:disabled{opacity:.45}
+#sb{display:grid;gap:3px;width:100%;font-size:clamp(10px,2.8vw,13px)}
+.pl{display:flex;justify-content:space-between;gap:6px;padding:3px 7px;border-radius:7px;background:#ffffffaa;border:2px solid transparent}
+.pl.on{border-color:var(--ac);background:#fff}
+#log{font-size:clamp(10px,2.8vw,13px);min-height:2.6em}
+#ov{position:fixed;inset:0;background:#000a;display:flex;align-items:center;justify-content:center;padding:16px;z-index:5}
+.md{background:var(--card);border-radius:16px;padding:18px;max-width:420px;width:100%;max-height:90vh;overflow:auto}
+.md h2{margin:0 0 6px;font-size:1.1rem}
+.opt{display:block;width:100%;text-align:left;margin:7px 0;padding:10px 12px;border-radius:10px;border:1.5px solid #cbd5d0;background:#fff;color:var(--ink)}
+.opt.ok{background:#bbf7d0;border-color:#16a34a}.opt.no{background:#fecaca;border-color:#dc2626}
+.sm{font-size:.9rem;color:#4b5a52}
+.hide{display:none!important}
+</style></head><body><div class="wrap">
+<h1>⚛️ Monopoli Atom</h1>
+<div id="board"></div>
+</div>
+<div id="ov"></div>
+<script>
+const COL=["#ef4444","#3b82f6","#16a34a","#f59e0b"],NM=["Merah","Biru","Hijau","Kuning"];
+const P=(n,e,g,price,q,o,a,f)=>({t:"prop",n,e,g,price,rent:Math.round(price/4),q,o,a,f});
+const GC={d:"#b45309",t:"#38bdf8",r:"#ef4444",b:"#a855f7",k:"#16a34a"};
+const C=[
+{t:"start",n:"START",e:"🚀"},
+P("Dalton","🔴","d",100,"Dalton menggambarkan atom sebagai…",["Bola pejal","Roti kismis","Awan elektron","Tata surya mini"],0,"Dalton (1803): atom adalah bola pejal yang tidak dapat dibagi."),
+{t:"chance",n:"Kesempatan",e:"🎴"},
+P("Thomson","🍞","t",120,"Model atom Thomson dijuluki model…",["Bola pejal","Roti kismis","Kulit atom","Orbital"],1,"Thomson (1897): elektron tersebar dalam bola bermuatan positif."),
+P("Elektron","⚡","t",140,"Muatan listrik elektron adalah…",["Positif","Negatif","Netral","Berubah-ubah"],1,"Elektron bermuatan negatif dan ditemukan Thomson."),
+{t:"quiz",n:"Kuis Cepat",e:"❓"},
+{t:"rest",n:"Laboratorium",e:"🧪"},
+P("Rutherford","🥇","r",160,"Percobaan Rutherford memakai lempeng tipis dari…",["Emas","Perak","Tembaga","Besi"],0,"Rutherford (1911): atom punya inti kecil, padat, dan positif."),
+P("Proton","➕","r",180,"Proton bermuatan…",["Negatif","Netral","Positif","Berganti-ganti"],2,"Proton berada di inti dan bermuatan positif."),
+{t:"chance",n:"Kesempatan",e:"🎴"},
+P("Inti Atom","🎯","r",200,"Inti atom tersusun dari…",["Proton dan elektron","Proton dan neutron","Neutron dan elektron","Foton dan elektron"],1,"Inti berisi proton dan neutron, hampir seluruh massa atom."),
+{t:"pen",n:"Radiasi",e:"☢️"},
+{t:"quiz",n:"Kuis Cepat",e:"❓"},
+P("Bohr","🪐","b",220,"Menurut Bohr, elektron beredar pada…",["Lintasan tertentu","Sembarang tempat","Di dalam inti","Awan acak"],0,"Bohr (1913): elektron mengorbit pada tingkat energi tertentu."),
+P("Kulit Atom","🧅","b",240,"Kulit atom yang paling dekat inti disebut kulit…",["K","L","M","N"],0,"Kulit K (n = 1) adalah yang terdalam dan berenergi terendah."),
+{t:"chance",n:"Kesempatan",e:"🎴"},
+P("Neutron","⚪","r",150,"Neutron ditemukan oleh…",["Chadwick","Thomson","Dalton","Bohr"],0,"James Chadwick menemukan neutron pada 1932; neutron tidak bermuatan."),
+P("Foton","💡","b",260,"Elektron turun ke kulit lebih dalam akan memancarkan…",["Proton","Foton","Neutron","Inti"],1,"Perpindahan turun melepaskan energi berupa foton (cahaya)."),
+{t:"bonus",n:"Fusi Inti",e:"🌟"},
+P("Kuantum","🌫️","k",280,"Prinsip ketidakpastian dikemukakan oleh…",["Dalton","Heisenberg","Rutherford","Thomson"],1,"Heisenberg: posisi dan momentum elektron tak bisa diketahui bersamaan."),
+P("Orbital","☁️","k",300,"Orbital adalah daerah dengan…",["Elektron pasti ada","Peluang terbesar menemukan elektron","Inti atom","Proton berkumpul"],1,"Orbital: daerah berpeluang terbesar menemukan elektron."),
+{t:"quiz",n:"Kuis Cepat",e:"❓"},
+P("Isotop","👯","k",200,"Isotop memiliki jumlah … sama, tetapi jumlah … berbeda.",["proton; neutron","neutron; proton","elektron; proton","proton; kulit"],0,"Isotop: proton sama, neutron berbeda."),
+{t:"chance",n:"Kesempatan",e:"🎴"}
+];
+const CARDS=[["Kamu menemukan elektron baru! +100",100],["Alat lab rusak. −80",-80],["Beasiswa sains! +150",150],["Salah menghitung massa atom. −50",-50],["Jurnalmu terbit! +120",120],["Denda tumpahan bahan kimia. −100",-100]];
+const MAXR=10;let pl=[],cur=0,round=1,own={},busy=false;
+const $=id=>document.getElementById(id);
+function pos(i){if(i===0)return[7,7];if(i<=6)return[7,7-i];if(i<=12)return[7-(i-6),1];if(i<=18)return[1,1+(i-12)];return[1+(i-18),7]}
+function buildBoard(){const b=$("board");b.innerHTML="";
+ C.forEach((c,i)=>{const d=document.createElement("div");d.className="cell";d.id="c"+i;const[r,cc]=pos(i);d.style.gridRow=r;d.style.gridColumn=cc;
+  d.innerHTML=(c.t==="prop"?`<div class="band" style="background:${GC[c.g]}"></div>`:"")+`<div class="cb"><span class="em">${c.e}</span><span>${c.n}</span>${c.t==="prop"?`<span class="pr">${c.price}</span>`:""}<div class="tks" id="tk${i}"></div></div>`;b.appendChild(d)});
+ const m=document.createElement("div");m.id="mid";m.innerHTML=`<div id="sb"></div><div id="dice">🎲</div><button class="btn" id="roll">Lempar dadu</button><div id="log"></div>`;b.appendChild(m);$("roll").onclick=roll}
+function paint(){C.forEach((_,i)=>{$("tk"+i).innerHTML=pl.filter(p=>p.pos===i&&!p.out).map(p=>`<span class="tk" style="background:${p.c}"></span>`).join("");const o=document.querySelector("#c"+i+" .own");if(o)o.remove();if(own[i]!==undefined){const s=document.createElement("span");s.className="own";s.style.background=pl[own[i]].c;$("c"+i).appendChild(s)}});
+ $("sb").innerHTML=pl.map((p,i)=>`<div class="pl ${i===cur?"on":""}"><span><span class="tk" style="background:${p.c};display:inline-block;vertical-align:middle"></span> ${p.n}</span><span>💰${p.m} · 🏷️${Object.values(own).filter(x=>x===i).length}</span></div>`).join("")+`<div class="sm">Putaran ${Math.min(round,MAXR)}/${MAXR}</div>`}
+function log(t){$("log").textContent=t}
+function modal(h,btns){const o=$("ov");o.classList.remove("hide");o.innerHTML=`<div class="md">${h}<div id="mb"></div></div>`;btns.forEach(([t,f])=>{const b=document.createElement("button");b.className="btn";b.style.marginTop="8px";b.textContent=t;b.onclick=f;$("mb").appendChild(b)})}
+function close(){$("ov").classList.add("hide");$("ov").innerHTML=""}
+function start(n){pl=Array.from({length:n},(_,i)=>({n:NM[i],c:COL[i],pos:0,m:1000}));cur=0;round=1;own={};close();buildBoard();paint();log("Giliran "+pl[0].n+". Lempar dadu!")}
+function intro(){const o=$("ov");o.innerHTML=`<div class="md"><h2>⚛️ Monopoli Atom</h2><p class="sm">Lempar dadu, jawab pertanyaan teori atom dengan benar untuk memiliki petak, dan kumpulkan uang sebanyak mungkin dalam ${MAXR} putaran. Petak milik pemain lain harus dibayar sewa!</p><b>Berapa pemain?</b><div id="np"></div></div>`;
+ [1,2,3,4].forEach(n=>{const b=document.createElement("button");b.className="btn";b.style.margin="8px 6px 0 0";b.textContent=n+" pemain";b.onclick=()=>start(n);$("np").appendChild(b)})}
+function roll(){if(busy)return;busy=true;$("roll").disabled=true;const p=pl[cur];let k=0;
+ const iv=setInterval(()=>{$("dice").textContent=["⚀","⚁","⚂","⚃","⚄","⚅"][Math.floor(Math.random()*6)];if(++k>8){clearInterval(iv);const d=1+Math.floor(Math.random()*6);$("dice").textContent=["⚀","⚁","⚂","⚃","⚄","⚅"][d-1];move(p,d)}},70)}
+function move(p,s){if(s===0){log(p.n+" mendarat di "+C[p.pos].n);return land(p)}
+ p.pos=(p.pos+1)%C.length;if(p.pos===0){p.m+=200;log(p.n+" melewati START: +200")}paint();setTimeout(()=>move(p,s-1),230)}
+function land(p){const c=C[p.pos],i=p.pos;
+ if(c.t==="prop"){if(own[i]===undefined)return ask(p,c,i,()=>{});
+  if(own[i]===p.idx())return modal(`<h2>${c.e} ${c.n}</h2><p>Ini petak milikmu. ${c.f}</p>`,[["Lanjut",end]]);
+  const o=pl[own[i]];p.m-=c.rent;o.m+=c.rent;return modal(`<h2>${c.e} ${c.n}</h2><p>Milik ${o.n}. Kamu bayar sewa <b>${c.rent}</b>.</p><p class="sm">${c.f}</p>`,[["Lanjut",end]])}
+ if(c.t==="chance"){const k=CARDS[Math.floor(Math.random()*CARDS.length)];p.m+=k[1];return modal(`<h2>🎴 Kartu Kesempatan</h2><p>${k[0]}</p>`,[["Lanjut",end]])}
+ if(c.t==="quiz"){const q=C.filter(x=>x.t==="prop")[Math.floor(Math.random()*13)];return ask(p,q,-1,()=>{})}
+ if(c.t==="pen"){p.m-=70;return modal(`<h2>☢️ Radiasi!</h2><p>Kamu terpapar radiasi. Bayar 70 untuk perlindungan.</p>`,[["Lanjut",end]])}
+ if(c.t==="bonus"){p.m+=100;return modal(`<h2>🌟 Fusi Inti</h2><p>Energi fusi melimpah! +100</p>`,[["Lanjut",end]])}
+ modal(`<h2>${c.e} ${c.n}</h2><p>Istirahat sejenak. Tidak ada yang terjadi.</p>`,[["Lanjut",end]])}
+function ask(p,c,i){const buy=i>=0;modal(`<h2>${c.e} ${c.n}</h2><p class="sm">${buy?`Jawab benar untuk membeli (harga ${c.price}, sewa ${c.rent}).`:"Kuis cepat: jawab benar dapat +100."}</p><p><b>${c.q}</b></p><div id="os"></div><p id="fb" class="sm"></p>`,[]);
+ c.o.forEach((t,j)=>{const b=document.createElement("button");b.className="opt";b.textContent=t;b.onclick=()=>{[...$("os").children].forEach(x=>x.onclick=null);const ok=j===c.a;
+  [...$("os").children][c.a].classList.add("ok");if(!ok)b.classList.add("no");let msg=ok?"✅ Benar! ":"❌ Salah. ";
+  if(ok&&buy){if(p.m>=c.price){p.m-=c.price;own[i]=p.idx();msg+=`Kamu membeli ${c.n}. `}else msg+="Uangmu tidak cukup untuk membeli. "}
+  else if(ok)(p.m+=100,msg+="+100. ");
+  $("fb").textContent=msg+c.f;paint();const n=document.createElement("button");n.className="btn";n.style.marginTop="8px";n.textContent="Lanjut";n.onclick=end;$("mb").appendChild(n)};$("os").appendChild(b)})}
+function end(){close();const p=pl[cur];if(p.m<0){finish(p.n+" bangkrut!");return}
+ cur=(cur+1)%pl.length;if(cur===0){round++;if(round>MAXR){paint();return finish("Permainan selesai!")}}
+ paint();busy=false;$("roll").disabled=false;log("Giliran "+pl[cur].n+". Lempar dadu!")}
+function finish(t){const sc=pl.map((p,i)=>({p,s:p.m+Object.keys(own).filter(k=>own[k]===i).reduce((a,k)=>a+C[k].price,0)})).sort((a,b)=>b.s-a.s);
+ modal(`<h2>🏆 ${t}</h2><p>Skor = uang + nilai petak.</p>${sc.map((x,i)=>`<p>${i+1}. <span class="tk" style="background:${x.p.c};display:inline-block;vertical-align:middle"></span> ${x.p.n}: <b>${x.s}</b></p>`).join("")}<p>Pemenang: <b>${sc[0].p.n}</b> 🎉</p>`,[["Main lagi",intro]])}
+pl.idx=0;Object.defineProperty(Object.prototype,"idx",{value:function(){return pl.indexOf(this)},enumerable:false});
+buildBoard();intro();
+</script></body></html>
